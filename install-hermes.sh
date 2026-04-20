@@ -7,7 +7,14 @@ info()    { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
+# 检测是否有 TTY（SSH 无交互时跳过 read）
+has_tty() { [ -t 0 ]; }
+
 install_obsidian_optional() {
+  if ! has_tty; then
+    warn "非交互模式，跳过 Obsidian 可选安装。手动安装：brew install --cask obsidian"
+    return
+  fi
   echo ""
   echo -e "${CYAN}[可选] 安装 Obsidian 知识库？${NC}"
   read -r -p "  是否安装？(y/N) " choice
@@ -43,40 +50,36 @@ info "macOS 版本：$MACOS"
 # 3. 安装 Homebrew（如未安装）
 if ! command -v brew &>/dev/null; then
   info "正在安装 Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
   eval "$(/opt/homebrew/bin/brew shellenv)"
 else
   info "Homebrew：$(brew --version | head -1)"
 fi
 
-# 5. 检查 / 安装 Git（Xcode CLT）
+# 4. 检查 / 安装 Git（Xcode CLT 由 Homebrew 安装器自动处理）
 if ! command -v git &>/dev/null; then
-  warn "未检测到 Git，正在触发 Xcode Command Line Tools 安装..."
-  xcode-select --install 2>/dev/null || true
-  echo "请在弹窗中点击安装，完成后重新运行此脚本。"
-  exit 1
+  error "Git 未找到。请先安装 Xcode Command Line Tools：xcode-select --install，完成后重新运行此脚本。"
 fi
 info "Git：$(git --version)"
 
-# 6. 检查是否已安装 Hermes
-if command -v hermes &>/dev/null; then
-  warn "Hermes 已安装（$(hermes --version 2>/dev/null || echo '版本未知')），跳过安装步骤。"
+# 5. 安装 Hermes（安装器内含 setup wizard，SSH 下 wizard 会失败但不影响主安装）
+if "$HOME/.local/bin/hermes" --version &>/dev/null 2>&1; then
+  warn "Hermes 已安装（$("$HOME/.local/bin/hermes" --version 2>/dev/null | head -1 || echo '版本未知')），跳过安装步骤。"
 else
   info "开始下载并安装 Hermes Agent..."
-  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+  # 用子 shell 捕获 wizard 的 /dev/tty 错误，不影响主流程
+  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash || true
 fi
 
-# 7. 刷新 shell 环境
-SHELL_RC="$HOME/.zshrc"
-if [[ -f "$SHELL_RC" ]]; then
-  # shellcheck disable=SC1090
-  source "$SHELL_RC" 2>/dev/null || true
-fi
+# 6. 刷新 PATH
+export PATH="$HOME/.local/bin:$PATH"
+source "$HOME/.zshrc" 2>/dev/null || true
 
-# 8. 验证安装
-if command -v hermes &>/dev/null; then
-  info "Hermes 安装成功！"
+# 7. 验证安装
+HERMES_BIN="$HOME/.local/bin/hermes"
+if [[ -x "$HERMES_BIN" ]]; then
+  info "Hermes 安装成功！$("$HERMES_BIN" --version 2>/dev/null | head -1)"
   echo ""
   echo "=============================="
   echo " 后续配置步骤（手动运行）："

@@ -7,7 +7,14 @@ info()    { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
+# 检测是否有 TTY（SSH 无交互时跳过 read）
+has_tty() { [ -t 0 ]; }
+
 install_obsidian_optional() {
+  if ! has_tty; then
+    warn "非交互模式，跳过 Obsidian 可选安装。手动安装：brew install --cask obsidian"
+    return
+  fi
   echo ""
   echo -e "${CYAN}[可选] 安装 Obsidian 知识库？${NC}"
   read -r -p "  是否安装？(y/N) " choice
@@ -51,38 +58,25 @@ else
   info "Homebrew：$(brew --version | head -1)"
 fi
 
-# 4. 安装 Node.js 22 LTS（如未满足版本要求）
-NODE_OK=false
-if command -v node &>/dev/null; then
-  NODE_VER=$(node -e "process.stdout.write(process.version.slice(1).split('.')[0])")
-  if (( NODE_VER >= 22 )); then
-    NODE_OK=true
-    info "Node.js：$(node --version)"
-  else
-    warn "Node.js 版本过低（$(node --version)），需要 v22+，正在升级..."
-  fi
-fi
-
-if [[ "$NODE_OK" == false ]]; then
-  info "正在通过 Homebrew 安装 Node.js 22 LTS..."
-  brew install node@22
-  brew link node@22 --force --overwrite 2>/dev/null || true
-  # 确保 PATH 包含 node@22
-  export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-  echo 'export PATH="/opt/homebrew/opt/node@22/bin:$PATH"' >> "$HOME/.zshrc"
-  info "Node.js：$(node --version)"
-fi
+# 4. 安装 Node.js 22 LTS（强制用 Homebrew，避免与其他工具的内置 node 冲突）
+info "正在通过 Homebrew 安装 Node.js 22 LTS..."
+brew install node@22 2>/dev/null || true
+brew link node@22 --force --overwrite 2>/dev/null || true
+export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+echo 'export PATH="/opt/homebrew/opt/node@22/bin:$PATH"' >> "$HOME/.zshrc"
+info "Node.js：$(node --version)"
 
 # 5. 检查 / 安装 OpenClaw
-if command -v openclaw &>/dev/null; then
-  warn "OpenClaw 已安装（$(openclaw --version 2>/dev/null || echo '版本未知')），跳过安装。"
+if /opt/homebrew/opt/node@22/bin/openclaw --version &>/dev/null 2>&1; then
+  warn "OpenClaw 已安装（$(/opt/homebrew/opt/node@22/bin/openclaw --version 2>/dev/null)），跳过安装。"
 else
   info "正在全局安装 OpenClaw..."
   npm install -g openclaw
 fi
 
 # 6. 验证安装
-if command -v openclaw &>/dev/null; then
+OPENCLAW_BIN="/opt/homebrew/opt/node@22/bin/openclaw"
+if [[ -x "$OPENCLAW_BIN" ]] || command -v openclaw &>/dev/null; then
   info "OpenClaw 安装成功！"
   echo ""
   echo "=============================="
