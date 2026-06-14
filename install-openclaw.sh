@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-click OpenClaw installer for Apple Silicon Mac
+# One-click OpenClaw installer for M-series Apple Silicon Mac
 set -euo pipefail
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -7,39 +7,16 @@ info()    { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 
-# 检测是否有 TTY（SSH 无交互时跳过 read）
-has_tty() { [ -t 0 ]; }
-
-install_obsidian_optional() {
-  if ! has_tty; then
-    warn "非交互模式，跳过 Obsidian 可选安装。手动安装：brew install --cask obsidian"
-    return
-  fi
-  echo ""
-  echo -e "${CYAN}[可选] 安装 Obsidian 知识库？${NC}"
-  read -r -p "  是否安装？(y/N) " choice
-  if [[ "$choice" =~ ^[Yy]$ ]]; then
-    if brew list --cask obsidian &>/dev/null 2>&1; then
-      warn "Obsidian 已安装，跳过"
-    else
-      info "正在通过 Homebrew 安装 Obsidian..."
-      brew install --cask obsidian && info "Obsidian 安装成功！" || warn "安装失败，可手动：brew install --cask obsidian"
-    fi
-  else
-    echo "  跳过。手动安装：brew install --cask obsidian"
-  fi
-}
-
 echo "=============================="
 echo " OpenClaw 一键安装脚本"
-echo " 适用于 Apple Silicon Mac"
+echo " 适用于 M 系列 Apple Silicon Mac"
 echo "=============================="
 echo ""
 
 # 1. 检查芯片架构
 ARCH=$(uname -m)
 if [[ "$ARCH" != "arm64" ]]; then
-  error "此脚本仅支持 Apple Silicon (arm64)，当前架构：$ARCH"
+  error "此脚本仅支持 M 系列 Apple Silicon (arm64)，当前架构：$ARCH"
 fi
 info "芯片架构：$ARCH"
 
@@ -87,5 +64,3 @@ if [[ -x "$OPENCLAW_BIN" ]] || command -v openclaw &>/dev/null; then
 else
   error "安装完成但 openclaw 命令未找到，请重启终端后重试。"
 fi
-
-install_obsidian_optional

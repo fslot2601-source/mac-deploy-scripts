@@ -59,23 +59,3 @@ echo ""
 echo "======================================"
 info "全部插件安装完成！重启 Claude Code 生效。"
 echo "======================================"
-
-# ── 可选：Obsidian MCP ──
-echo ""
-echo -e "${CYAN}[可选] 安装 Obsidian MCP？${NC}"
-echo "  让 Claude 直接读写你的 Obsidian vault。"
-read -r -p "  是否安装？(y/N) " choice
-if [[ "$choice" =~ ^[Yy]$ ]]; then
-  read -r -p "  请输入你的 vault 完整路径（例：/Users/你的名字/Documents/vault）: " vault_path
-  if [[ -z "$vault_path" || ! -d "$vault_path" ]]; then
-    warn "路径无效或不存在，跳过 Obsidian MCP 安装"
-  else
-    echo "  正在添加 Obsidian MCP..."
-    claude mcp add obsidian -- npx -y obsidian-mcp "$vault_path" \
-      && info "Obsidian MCP 添加成功！重启 Claude Code 生效。" \
-      || warn "添加失败，可手动运行：claude mcp add obsidian -- npx -y obsidian-mcp \"$vault_path\""
-  fi
-else
-  echo "  跳过。如需手动安装："
-  echo "  claude mcp add obsidian -- npx -y obsidian-mcp \"/你的vault路径\""
-fi
