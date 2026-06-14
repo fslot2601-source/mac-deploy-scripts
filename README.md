@@ -1,89 +1,112 @@
+# Mac 一键部署脚本
 
-# Mac Mini 一键部署脚本
+给全新的开发机器安装常用 AI coding / agent 工具。
 
-三个脚本，一键在 Apple Silicon Mac 上部署 AI 工具环境（agent + 知识库）。
+默认推荐使用 `install.sh` 作为统一入口；旧的单项脚本仍保留，方便只安装某一个组件。
 
----
+脚本面向 Apple Silicon Mac，判断逻辑是 `arm64`，因此不枚举 M1/M2/M3/M4/M5；只要是 M 系列芯片就属于支持范围。
 
-## 文件说明
+## 一条命令
 
-| 文件 | 包含内容 |
-|---|---|
-| `install-hermes.sh` | Homebrew → Git → Hermes Agent → [可选] Obsidian |
-| `install-openclaw.sh` | Homebrew → Node.js → OpenClaw → [可选] Obsidian |
-| `install-claude-plugins.sh` | Claude Code 常用 plugins → [可选] Obsidian MCP |
-
----
-
-## 使用方式
-
-### 方式一：远程一行执行（推荐）
-
-在任何地方，目标机器上直接跑：
+让对方打开“终端”，复制下面这一整行，粘贴进去回车：
 
 ```bash
-# 安装 Hermes Agent
+curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh | bash
+```
+
+默认安装：
+
+- Codex CLI
+- OpenClaw
+- Hermes Agent
+
+脚本不会安装 Obsidian，也不会询问 Obsidian 相关配置。
+
+安装时会显示中文步骤进度条和当前正在做什么。过程中如果 macOS 要求输入密码，对方输入自己这台 Mac 的登录密码即可。
+
+## 本机一条命令
+
+本机默认安装：
+
+```bash
+bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh)
+```
+
+## SSH 高级用法
+
+如果你已经能 SSH 登录对方机器，也可以远程触发：
+
+```bash
+ssh -tt user@mac-host 'curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh | bash'
+```
+
+`-tt` 用来分配远程终端，这样中文提示、步骤进度条和需要输入的选择都能正常显示。
+
+直接安装 Codex、OpenClaw、Hermes：
+
+```bash
+bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh) --codex --openclaw --hermes
+```
+
+直接安装 Claude Code、Claude 插件、OpenClaw、Hermes：
+
+```bash
+bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh) --claude --with-claude-plugins --openclaw --hermes
+```
+
+跳过 OpenClaw / Hermes 的首次向导：
+
+```bash
+bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh) --codex --openclaw --hermes --skip-setup
+```
+
+先看会做什么，不执行安装：
+
+```bash
+bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install.sh) --codex --openclaw --hermes --dry-run
+```
+
+## 可选组件
+
+| 选项 | 内容 |
+|---|---|
+| `--codex` | 安装 Codex CLI |
+| `--claude` | 安装 Claude Code CLI |
+| `--with-claude-plugins` | 安装 Claude Code 常用插件 |
+| `--openclaw` | 安装 OpenClaw |
+| `--hermes` | 安装 Hermes Agent |
+| `--all` | 安装 Codex、Claude Code、OpenClaw、Hermes |
+| `--skip-setup` | 跳过支持该选项的首次配置向导 |
+| `--dry-run` | 只打印计划，不执行安装 |
+
+## 单项脚本
+
+```bash
+# Hermes Agent
 bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install-hermes.sh)
 
-# 安装 OpenClaw
+# OpenClaw
 bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install-openclaw.sh)
 
-# 安装 Claude Code 常用 Plugins
+# Claude Code plugins
 bash <(curl -fsSL https://cdn.jsdelivr.net/gh/fslot2601-source/mac-deploy-scripts@main/install-claude-plugins.sh)
 ```
 
-### 方式二：SSH 推过去跑
-
-在你自己的机器上，把脚本推到目标机器执行：
-
-```bash
-# Hermes
-ssh user@192.168.x.x "bash -s" < install-hermes.sh
-
-# OpenClaw
-ssh user@192.168.x.x "bash -s" < install-openclaw.sh
-
-# Claude Plugins
-ssh user@192.168.x.x "bash -s" < install-claude-plugins.sh
-```
-
-> 注意：SSH 模式下可选步骤（Obsidian）的交互提示仍然有效，会在远程机器上等待输入。
-
-### 方式三：直接在目标机器上跑
-
-把脚本复制到目标 Mac Mini，然后：
-
-```bash
-bash install-hermes.sh
-bash install-openclaw.sh
-bash install-claude-plugins.sh
-```
-
----
-
 ## 安装后配置
 
-### Hermes Agent
-
 ```bash
-hermes setup     # 完整配置向导（推荐首次运行）
-hermes model     # 选择 LLM 提供商（OpenAI / Anthropic / 本地等）
-hermes doctor    # 诊断环境问题
-hermes           # 启动对话
+codex                  # 启动 Codex
+claude                 # 启动 Claude Code
+openclaw onboard       # OpenClaw 首次配置
+hermes setup           # Hermes 完整配置向导
 ```
 
-### OpenClaw
+## 说明
 
-```bash
-openclaw setup                        # 初始化配置向导
-openclaw onboard --install-daemon     # 设为开机自启后台服务（可选）
-```
-
----
-
-## 注意事项
-
-- 仅支持 Apple Silicon（M1/M2/M3/M4），Intel Mac 会直接报错退出
-- 脚本幂等：已安装则跳过，重复执行安全
-- Homebrew 如未安装会自动安装（需要网络，首次较慢）
-- 安装完如果命令找不到，重启终端或运行 `source ~/.zshrc`
+- Codex 使用 OpenAI 官方安装器：`https://chatgpt.com/codex/install.sh`
+- Claude Code 使用 Anthropic 官方安装器：`https://claude.ai/install.sh`
+- OpenClaw 使用官方安装器：`https://openclaw.ai/install.sh`
+- Hermes 使用 Nous Research 官方安装器：`https://hermes-agent.nousresearch.com/install.sh`
+- 已安装的组件会跳过，重复执行是安全的
+- 安装过程会显示中文步骤进度条和当前正在执行的内容
+- 安装完成后如果命令找不到，重新打开终端
